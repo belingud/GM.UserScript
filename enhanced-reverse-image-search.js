@@ -1,0 +1,433 @@
+// ==UserScript==
+// @name           以图搜图增强版
+// @name:en        Enhanced Reverse Image Search
+// @namespace      https://github.com/belingud/GM.search-by-image
+// @version        0.5.0
+// @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
+// @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
+// @author         belingud
+// @license        BSD 3-Clause License
+// @match          *://*/*
+// @grant          GM_openInTab
+// @grant          GM_registerMenuCommand
+// @grant          GM_xmlhttpRequest
+// @connect        0x0.st
+// ==/UserScript==
+
+(function () {
+    "use strict";
+
+    // Define current language
+    const currentLanguage = navigator.language.includes("zh") ? "zh" : "en";
+
+    // Define translations
+    const translations = {
+        en: {
+            selectImageSource: "Select Image Source:",
+            selectSearchEngine: "Select Search Engine:",
+            selectFile: "Select File",
+            pasteURL: "Paste URL",
+            clickImage: "Click Image",
+            googleLens: "Google Lens",
+            tinEye: "TinEye",
+            yandex: "Yandex",
+            bing: "Bing",
+            sogou: "Sogou",
+            baidu: "Baidu",
+            trace: "trace",
+            sauceNAO: "SauceNAO",
+            IQDB: "IQDB",
+            "3DIQDB": "3DIQDB",
+            ascii2d: "ascii2d",
+            close: "Close",
+            loading: "Loading...",
+            pasteURLPrompt: "Paste image URL:",
+            urlPasted: "URL pasted. Now choose a search engine.",
+            clickAnyImage: "Click on any image on the page.",
+            imageSelected: "Image selected. Now choose a search engine.",
+            selectImageFirst: "Please select an image source first.",
+            pleaseSelectFile: "Please select a file before clicking a search engine.",
+        },
+        zh: {
+            selectImageSource: "选择图片来源：",
+            selectSearchEngine: "选择搜索引擎：",
+            selectFile: "选择文件",
+            pasteURL: "粘贴链接",
+            clickImage: "点击图片",
+            googleLens: "Google Lens",
+            tinEye: "TinEye",
+            yandex: "Yandex",
+            bing: "必应",
+            sogou: "搜狗",
+            baidu: "百度",
+            trace: "trace",
+            sauceNAO: "SauceNAO",
+            IQDB: "IQDB",
+            "3DIQDB": "3DIQDB",
+            ascii2d: "ascii2d",
+            close: "关闭",
+            loading: "加载中...",
+            pasteURLPrompt: "粘贴图片链接：",
+            urlPasted: "链接已粘贴。现在选择一个搜索引擎。",
+            clickAnyImage: "点击页面上的任何图片。",
+            imageSelected: "图片已选择。现在选择一个搜索引擎。",
+            selectImageFirst: "请先选择图片来源。",
+            pleaseSelectFile: "请先选择文件，然后再点击搜索引擎。",
+        },
+    };
+
+    // Helper function for translations
+    function t(key) {
+        return translations[currentLanguage][key];
+    }
+
+    let imageSrc = ""; // Image source URL
+    let selectedEngine = ""; // Selected search engine
+    let imgType = ""; // Image type
+    let file = ""; // File object
+
+    const searchUrl = {
+        "Google Lens": "https://lens.google.com/uploadbyurl?url=${url}",
+        TinEye: "https://www.tineye.com/search/?url=${url}",
+        Yandex: "https://yandex.com/images/search?url=${url}&rpt=imageview",
+        Bing: "https://www.bing.com/images/searchbyimage?cbir=sbi&iss=sbi&imgurl=${url}",
+        Sogou: "https://pic.sogou.com/ris?query=https%3A%2F%2Fimg03.sogoucdn.com%2Fv2%2Fthumb%2Fretype_exclude_gif%2Fext%2Fauto%3Fappid%3D122%26url%3D${url}&flag=1&drag=0",
+        Baidu: "https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&carousel=0&promotion_name=pc_image_shituindex&extUiData%5bisLogoShow%5d=1&image=${url}",
+        Trace: "https://trace.moe/?url=${url}",
+        SauceNAO: "https://saucenao.com/search.php?db=999&url=${url}",
+        IQDB: "https://iqdb.org/?url=${url}",
+        "3DIQDB": "https://3d.iqdb.org/?url=${url}",
+        ascii2d: "https://ascii2d.net/search/url/${url}",
+    };
+
+    const searchEngines = [
+        {
+            text: t("googleLens"),
+            handler: async () => {
+                selectedEngine = "Google Lens";
+                await searchImage();
+            },
+        },
+        {
+            text: t("tinEye"),
+            handler: async () => {
+                selectedEngine = "TinEye";
+                await searchImage();
+            },
+        },
+        {
+            text: t("yandex"),
+            handler: async () => {
+                selectedEngine = "Yandex";
+                await searchImage();
+            },
+        },
+        {
+            text: t("bing"),
+            handler: async () => {
+                selectedEngine = "Bing";
+                await searchImage();
+            },
+        },
+        {
+            text: t("sogou"),
+            handler: async () => {
+                selectedEngine = "Sogou";
+                await searchImage();
+            },
+        },
+        {
+            text: t("baidu"),
+            handler: async () => {
+                selectedEngine = "Baidu";
+                await searchImage();
+            },
+        },
+        {
+            text: t("trace"),
+            handler: async () => {
+                selectedEngine = "Trace";
+                await searchImage();
+            },
+        },
+        {
+            text: t("sauceNAO"),
+            handler: async () => {
+                selectedEngine = "SauceNAO";
+                await searchImage();
+            },
+        },
+        {
+            text: t("IQDB"),
+            handler: async () => {
+                selectedEngine = "IQDB";
+                await searchImage();
+            },
+        },
+        {
+            text: t("3DIQDB"),
+            handler: async () => {
+                selectedEngine = "3DIQDB";
+                await searchImage();
+            },
+        },
+        {
+            text: t("ascii2d"),
+            handler: async () => {
+                selectedEngine = "ascii2d";
+                await searchImage();
+            },
+        },
+    ];
+
+    const imageSources = [
+        { text: t("selectFile"), handler: selectFile, id: "select-file" },
+        { text: t("pasteURL"), handler: pasteURL, id: "paste-url" },
+        { text: t("clickImage"), handler: clickImage, id: "click-image" },
+    ];
+
+    // Register the main command in the Tampermonkey menu
+    GM_registerMenuCommand("Reverse Image Search", openMenu);
+
+    // Function to create and open the menu
+    function openMenu() {
+        // Remove any existing menu
+        const existingMenu = document.getElementById("reverse-image-search-menu");
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        const menu = document.createElement("div");
+        menu.id = "reverse-image-search-menu";
+        menu.style.position = "fixed";
+        menu.style.top = "10px";
+        menu.style.right = "10px";
+        menu.style.backgroundColor = "#fff";
+        menu.style.border = "1px solid #ccc";
+        menu.style.zIndex = "9999";
+        menu.style.padding = "10px";
+        menu.style.maxWidth = "200px";
+        document.body.appendChild(menu);
+
+        // Image source options
+        const sourceTitle = document.createElement("div");
+        sourceTitle.textContent = t("selectImageSource");
+        sourceTitle.style.marginBottom = "10px";
+        sourceTitle.style.fontWeight = "bold";
+        menu.appendChild(sourceTitle);
+
+        imageSources.forEach((source) => {
+            const sourceOption = document.createElement("div");
+            sourceOption.textContent = source.text;
+            sourceOption.id = source.id;
+            sourceOption.style.cursor = "pointer";
+            sourceOption.style.padding = "5px";
+            sourceOption.style.textAlign = "center";
+            sourceOption.style.border = "1px solid #ddd";
+            sourceOption.style.marginBottom = "5px";
+            sourceOption.addEventListener("click", source.handler);
+            menu.appendChild(sourceOption);
+        });
+
+        // Search engine buttons
+        const engineTitle = document.createElement("div");
+        engineTitle.textContent = t("selectSearchEngine");
+        engineTitle.style.marginBottom = "10px";
+        engineTitle.style.fontWeight = "bold";
+        menu.appendChild(engineTitle);
+
+        searchEngines.forEach((engine) => {
+            const engineOption = document.createElement("div");
+            engineOption.textContent = engine.text;
+            engineOption.style.cursor = "pointer";
+            engineOption.style.padding = "5px";
+            engineOption.style.textAlign = "center";
+            engineOption.style.border = "1px solid #ddd";
+            engineOption.style.marginBottom = "5px";
+            engineOption.addEventListener("click", async () => {
+                if (imgType === "file" && file) {
+                    showLoading(menu); // Show loading animation
+                }
+                await engine.handler();
+            });
+            menu.appendChild(engineOption);
+        });
+
+        const closeButton = document.createElement("button");
+        closeButton.textContent = t("close");
+        closeButton.style.marginTop = "10px";
+        closeButton.style.padding = "5px";
+        closeButton.style.width = "100%";
+        closeButton.addEventListener("click", () => {
+            menu.remove();
+        });
+        menu.appendChild(closeButton);
+    }
+
+    // Handle select file
+    function selectFile() {
+        imgType = "file";
+        const input = document.createElement("input");
+        input.type = "file";
+        input.addEventListener("change", (event) => {
+            file = event.target.files[0];
+            markSelected("select-file");
+        });
+        input.click();
+    }
+
+    // Handle paste URL
+    function pasteURL() {
+        imgType = "url";
+        const url = prompt(t("pasteURLPrompt"));
+        if (url) {
+            imageSrc = url;
+            markSelected("paste-url");
+        }
+    }
+
+    // Handle click image
+    function clickImage() {
+        imgType = "page";
+        document.body.addEventListener("click", function handleClick(event) {
+            if (event.target.tagName === "IMG") {
+                imageSrc = event.target.src;
+                document.body.removeEventListener("click", handleClick);
+                markSelected("click-image");
+                event.preventDefault(); // Prevent default link behavior
+            }
+        });
+    }
+
+    // Perform image search
+    async function searchImage() {
+        if (!file && imgType === "file") {
+            // alert("请先选择一个文件，然后再点击搜索引擎搜图！");
+            alert(t("pleaseSelectFile"));
+            return;
+        }
+        if (imgType === "file") {
+            imageSrc = await getTmpImgLink(file);
+            hideLoading(); // Hide loading animation after getting the link
+        }
+        let tmp;
+        if (selectedEngine !== "ascii2d") {
+            tmp = encodeURIComponent(imageSrc);
+        } else {
+            tmp = imageSrc;
+        }
+        let target = searchUrl[selectedEngine].replace("${url}", tmp);
+        console.log("target: ", target);
+        GM_openInTab(target, { active: true, insert: true, setParent: true });
+    }
+
+    /**
+     * Asynchronously uploads a file to 0x0st and returns the uploaded URL.
+     *
+     * @param {File} file - The file to upload
+     * @return {Promise<string>} The URL of the uploaded file
+     */
+    async function uploadTo0x0st(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://0x0.st",
+                data: formData,
+                onload: function (response) {
+                    const data = response.responseText;
+                    if (data.startsWith("http")) {
+                        resolve(data.trim());
+                    } else {
+                        console.error("Upload failed:", data);
+                        reject(data);
+                    }
+                },
+                onerror: function (response) {
+                    console.error("Request failed:", response);
+                    reject(response);
+                },
+            });
+        });
+        return await response;
+    }
+
+    /**
+     * 使用临时网盘来将文件转为链接搜图
+     * @param {*} file
+     */
+    async function getTmpImgLink(file) {
+        return await uploadTo0x0st(file);
+    }
+
+    /**
+     * Mark the selected image source with a green checkmark.
+     * @param {string} id - The id of the selected image source.
+     */
+    function markSelected(id) {
+        imageSources.forEach((source) => {
+            const element = document.getElementById(source.id);
+            if (source.id === id) {
+                element.style.fontWeight = "bold";
+                element.style.color = "green";
+                element.textContent = `✔ ${source.text}`;
+            } else {
+                element.style.fontWeight = "normal";
+                element.style.color = "black";
+                element.textContent = source.text;
+            }
+        });
+    }
+
+    /**
+     * Show loading animation
+     * @param {HTMLElement} menu - The menu element
+     */
+    function showLoading(menu) {
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "loading-animation";
+        loadingDiv.style.position = "absolute";
+        loadingDiv.style.top = "0";
+        loadingDiv.style.left = "0";
+        loadingDiv.style.width = "100%";
+        loadingDiv.style.height = "100%";
+        loadingDiv.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+        loadingDiv.style.display = "flex";
+        loadingDiv.style.justifyContent = "center";
+        loadingDiv.style.alignItems = "center";
+        loadingDiv.style.zIndex = "1000";
+
+        const spinner = document.createElement("div");
+        spinner.style.border = "4px solid #f3f3f3";
+        spinner.style.borderRadius = "50%";
+        spinner.style.borderTop = "4px solid #3498db";
+        spinner.style.width = "30px";
+        spinner.style.height = "30px";
+        spinner.style.animation = "spin 2s linear infinite";
+        loadingDiv.appendChild(spinner);
+
+        menu.appendChild(loadingDiv);
+    }
+
+    /**
+     * Hide loading animation
+     */
+    function hideLoading() {
+        const loadingDiv = document.getElementById("loading-animation");
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    // Add spinner animation keyframes
+    const style = document.createElement("style");
+    style.type = "text/css";
+    style.innerHTML = `
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+})();
