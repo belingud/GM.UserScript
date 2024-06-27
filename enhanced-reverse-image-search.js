@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        0.5.0
+// @version        0.6.0
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @author         belingud
@@ -40,13 +40,14 @@
             "3DIQDB": "3DIQDB",
             ascii2d: "ascii2d",
             close: "Close",
-            loading: "Loading...",
+            loading: "Uploading...",
             pasteURLPrompt: "Paste image URL:",
             urlPasted: "URL pasted. Now choose a search engine.",
             clickAnyImage: "Click on any image on the page.",
             imageSelected: "Image selected. Now choose a search engine.",
             selectImageFirst: "Please select an image source first.",
             pleaseSelectFile: "Please select a file before clicking a search engine.",
+            uploadError: "Upload failed, please try again or check your network.",
         },
         zh: {
             selectImageSource: "选择图片来源：",
@@ -66,18 +67,19 @@
             "3DIQDB": "3DIQDB",
             ascii2d: "ascii2d",
             close: "关闭",
-            loading: "加载中...",
+            loading: "图片上传中...",
             pasteURLPrompt: "粘贴图片链接：",
             urlPasted: "链接已粘贴。现在选择一个搜索引擎。",
             clickAnyImage: "点击页面上的任何图片。",
             imageSelected: "图片已选择。现在选择一个搜索引擎。",
             selectImageFirst: "请先选择图片来源。",
             pleaseSelectFile: "请先选择文件，然后再点击搜索引擎。",
+            uploadError: "上传失败，请重试或检查网络。",
         },
     };
 
     // Helper function for translations
-    function t(key) {
+    function lang(key) {
         return translations[currentLanguage][key];
     }
 
@@ -102,77 +104,77 @@
 
     const searchEngines = [
         {
-            text: t("googleLens"),
+            text: lang("googleLens"),
             handler: async () => {
                 selectedEngine = "Google Lens";
                 await searchImage();
             },
         },
         {
-            text: t("tinEye"),
+            text: lang("tinEye"),
             handler: async () => {
                 selectedEngine = "TinEye";
                 await searchImage();
             },
         },
         {
-            text: t("yandex"),
+            text: lang("yandex"),
             handler: async () => {
                 selectedEngine = "Yandex";
                 await searchImage();
             },
         },
         {
-            text: t("bing"),
+            text: lang("bing"),
             handler: async () => {
                 selectedEngine = "Bing";
                 await searchImage();
             },
         },
         {
-            text: t("sogou"),
+            text: lang("sogou"),
             handler: async () => {
                 selectedEngine = "Sogou";
                 await searchImage();
             },
         },
         {
-            text: t("baidu"),
+            text: lang("baidu"),
             handler: async () => {
                 selectedEngine = "Baidu";
                 await searchImage();
             },
         },
         {
-            text: t("trace"),
+            text: lang("trace"),
             handler: async () => {
                 selectedEngine = "Trace";
                 await searchImage();
             },
         },
         {
-            text: t("sauceNAO"),
+            text: lang("sauceNAO"),
             handler: async () => {
                 selectedEngine = "SauceNAO";
                 await searchImage();
             },
         },
         {
-            text: t("IQDB"),
+            text: lang("IQDB"),
             handler: async () => {
                 selectedEngine = "IQDB";
                 await searchImage();
             },
         },
         {
-            text: t("3DIQDB"),
+            text: lang("3DIQDB"),
             handler: async () => {
                 selectedEngine = "3DIQDB";
                 await searchImage();
             },
         },
         {
-            text: t("ascii2d"),
+            text: lang("ascii2d"),
             handler: async () => {
                 selectedEngine = "ascii2d";
                 await searchImage();
@@ -181,9 +183,9 @@
     ];
 
     const imageSources = [
-        { text: t("selectFile"), handler: selectFile, id: "select-file" },
-        { text: t("pasteURL"), handler: pasteURL, id: "paste-url" },
-        { text: t("clickImage"), handler: clickImage, id: "click-image" },
+        { text: lang("selectFile"), handler: selectFile, id: "select-file" },
+        { text: lang("pasteURL"), handler: pasteURL, id: "paste-url" },
+        { text: lang("clickImage"), handler: clickImage, id: "click-image" },
     ];
 
     // Register the main command in the Tampermonkey menu
@@ -207,11 +209,13 @@
         menu.style.zIndex = "9999";
         menu.style.padding = "10px";
         menu.style.maxWidth = "200px";
+        // font color black
+        menu.style.color = "black";
         document.body.appendChild(menu);
 
         // Image source options
         const sourceTitle = document.createElement("div");
-        sourceTitle.textContent = t("selectImageSource");
+        sourceTitle.textContent = lang("selectImageSource");
         sourceTitle.style.marginBottom = "10px";
         sourceTitle.style.fontWeight = "bold";
         menu.appendChild(sourceTitle);
@@ -231,7 +235,7 @@
 
         // Search engine buttons
         const engineTitle = document.createElement("div");
-        engineTitle.textContent = t("selectSearchEngine");
+        engineTitle.textContent = lang("selectSearchEngine");
         engineTitle.style.marginBottom = "10px";
         engineTitle.style.fontWeight = "bold";
         menu.appendChild(engineTitle);
@@ -254,7 +258,7 @@
         });
 
         const closeButton = document.createElement("button");
-        closeButton.textContent = t("close");
+        closeButton.textContent = lang("close");
         closeButton.style.marginTop = "10px";
         closeButton.style.padding = "5px";
         closeButton.style.width = "100%";
@@ -262,6 +266,17 @@
             menu.remove();
         });
         menu.appendChild(closeButton);
+
+        // Add spinner animation keyframes
+        const style = document.createElement("style");
+        style.type = "text/css";
+        style.innerHTML = `
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+        document.head.appendChild(style);
     }
 
     // Handle select file
@@ -269,6 +284,7 @@
         imgType = "file";
         const input = document.createElement("input");
         input.type = "file";
+        input.accept = "image/*";
         input.addEventListener("change", (event) => {
             file = event.target.files[0];
             markSelected("select-file");
@@ -279,7 +295,7 @@
     // Handle paste URL
     function pasteURL() {
         imgType = "url";
-        const url = prompt(t("pasteURLPrompt"));
+        const url = prompt(lang("pasteURLPrompt"));
         if (url) {
             imageSrc = url;
             markSelected("paste-url");
@@ -302,13 +318,15 @@
     // Perform image search
     async function searchImage() {
         if (!file && imgType === "file") {
-            // alert("请先选择一个文件，然后再点击搜索引擎搜图！");
-            alert(t("pleaseSelectFile"));
+            showToast(lang("pleaseSelectFile"), "error");
             return;
         }
         if (imgType === "file") {
             imageSrc = await getTmpImgLink(file);
             hideLoading(); // Hide loading animation after getting the link
+        }
+        if (!imageSrc) {
+            return;
         }
         let tmp;
         if (selectedEngine !== "ascii2d") {
@@ -317,7 +335,6 @@
             tmp = imageSrc;
         }
         let target = searchUrl[selectedEngine].replace("${url}", tmp);
-        console.log("target: ", target);
         GM_openInTab(target, { active: true, insert: true, setParent: true });
     }
 
@@ -340,12 +357,10 @@
                     if (data.startsWith("http")) {
                         resolve(data.trim());
                     } else {
-                        console.error("Upload failed:", data);
                         reject(data);
                     }
                 },
                 onerror: function (response) {
-                    console.error("Request failed:", response);
                     reject(response);
                 },
             });
@@ -358,7 +373,12 @@
      * @param {*} file
      */
     async function getTmpImgLink(file) {
-        return await uploadTo0x0st(file);
+        try {
+            return await uploadTo0x0st(file);
+        } catch (error) {
+            console.log("[reverse image search] upload error: ", error);
+            showToast(lang("uploadError"), "error");
+        }
     }
 
     /**
@@ -420,14 +440,22 @@
         }
     }
 
-    // Add spinner animation keyframes
-    const style = document.createElement("style");
-    style.type = "text/css";
-    style.innerHTML = `
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(style);
+    function showToast(message, type) {
+        const toast = document.createElement("div");
+        toast.textContent = message;
+        toast.style.position = "fixed";
+        toast.style.bottom = "20px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.backgroundColor = type === "success" ? "#4caf50" : "#f44336";
+        toast.style.color = "#fff";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "5px";
+        toast.style.zIndex = "10000";
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
 })();
