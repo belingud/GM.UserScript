@@ -92,7 +92,7 @@
         "Google Lens": "https://lens.google.com/uploadbyurl?url=${url}",
         TinEye: "https://www.tineye.com/search/?url=${url}",
         Yandex: "https://yandex.com/images/search?url=${url}&rpt=imageview",
-        Bing: "https://www.bing.com/images/searchbyimage?cbir=sbi&iss=sbi&imgurl=${url}",
+        Bing: "https://www.bing.com/images/search?q=imgurl:${url}&view=detailv2&iss=sbi",
         Sogou: "https://pic.sogou.com/ris?query=https%3A%2F%2Fimg03.sogoucdn.com%2Fv2%2Fthumb%2Fretype_exclude_gif%2Fext%2Fauto%3Fappid%3D122%26url%3D${url}&flag=1&drag=0",
         Baidu: "https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&carousel=0&promotion_name=pc_image_shituindex&extUiData%5bisLogoShow%5d=1&image=${url}",
         Trace: "https://trace.moe/?url=${url}",
