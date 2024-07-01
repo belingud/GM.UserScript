@@ -4,6 +4,8 @@
 
 以图搜图增强版是一款Tampermonkey脚本，允许您使用本地文件、粘贴链接或点击网页图片的方式来进行以图搜图。它支持多种搜索引擎，包括Google Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB和ascii2d。
 
+github: https://github.com/belingud/GM.UserScript
+
 > 声明：本脚本允许在任何页面使用，但是不获取页面内容，除非使用点击网页图片的方式进行搜图。不在浏览器设置任何缓存和indexdb，如果使用本地文件进行以图搜图，会使用匿名临时云盘（目前使用0x0.st）上传后使用图片链接进行搜索。本脚本不会存储和发送任何图片链接，仅在打开新页面搜图时使用临时云盘的图片链接。
 
 ## 特点
@@ -26,7 +28,9 @@
 ## 安装
 
 1. 安装浏览器的Tampermonkey扩展。
-2. 在Tampermonkey中创建一个新脚本并粘贴提供的代码。
+2. 安装脚本：
+   - greasyfork：https://greasyfork.org/zh-CN/scripts/498955-%E4%BB%A5%E5%9B%BE%E6%90%9C%E5%9B%BE%E5%A2%9E%E5%BC%BA%E7%89%88
+   - 脚本猫：https://scriptcat.org/zh-CN/script-show-page/1943
 
 ## 使用方法
 
