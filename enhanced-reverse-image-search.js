@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        0.7.0
+// @version        0.8.1
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @author         belingud
@@ -365,6 +365,10 @@
                 method: "POST",
                 url: "https://0x0.st",
                 data: formData,
+                headers: {
+                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
+                    "User-Agent": "tampermonkey-enhanced-reverse-image-search",
+                },
                 onload: function (response) {
                     const data = response.responseText;
                     if (data.startsWith("http")) {
@@ -372,6 +376,34 @@
                     } else {
                         reject(data);
                     }
+                },
+                onerror: function (response) {
+                    reject(response);
+                },
+            });
+        });
+        return await response;
+    }
+
+    async function uploadToTempCloud(file){
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://temp.kotol.cloud/api/file-upload?expiration=3600000",
+                data: formData,
+                headers: {
+                    "File-Name": file.name,
+                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
+                },
+                onload: function (response) {
+                    if (response.status !== 200) {
+                        reject(response.responseText);
+                    }
+                    const resp = JSON.parse(response.responseText);
+                    console.log("upload response: ", resp);
+                    resolve(`https://temp.kotol.cloud/api/download/${file.name}?code=${resp.code}`);
                 },
                 onerror: function (response) {
                     reject(response);
