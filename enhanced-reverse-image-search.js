@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        0.6.1
+// @version        0.7.0
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @author         belingud
@@ -48,6 +48,7 @@
             selectImageFirst: "Please select an image source first.",
             pleaseSelectFile: "Please select a file before clicking a search engine.",
             uploadError: "Upload failed, please try again or check your network.",
+            dragHint: "Click and drag to move"
         },
         zh: {
             selectImageSource: "选择图片来源：",
@@ -75,6 +76,7 @@
             selectImageFirst: "请先选择图片来源。",
             pleaseSelectFile: "请先选择文件，然后再点击搜索引擎。",
             uploadError: "上传失败，请重试或检查网络。",
+            dragHint: "点击空白处拖动"
         },
     };
 
@@ -213,6 +215,9 @@
         menu.style.color = "black";
         document.body.appendChild(menu);
 
+        // Make the menu draggable
+        makeDraggable(menu);
+
         // Image source options
         const sourceTitle = document.createElement("div");
         sourceTitle.textContent = lang("selectImageSource");
@@ -256,6 +261,14 @@
             });
             menu.appendChild(engineOption);
         });
+
+        // Add drag hint
+        const dragHint = document.createElement("div");
+        dragHint.textContent = lang("dragHint");
+        dragHint.style.fontStyle = "italic";
+        dragHint.style.fontSize = "10px";
+        dragHint.style.marginTop = "10px";
+        menu.appendChild(dragHint);
 
         const closeButton = document.createElement("button");
         closeButton.textContent = lang("close");
@@ -457,5 +470,40 @@
         setTimeout(() => {
             toast.remove();
         }, 3000);
+    }
+
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        element.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 })();
