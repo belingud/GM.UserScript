@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        0.8.1
+// @version        0.9.0
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @author         belingud
@@ -385,6 +385,42 @@
         return await response;
     }
 
+    /**
+     * Asynchronously uploads a file to file.io and returns the uploaded URL.
+     *
+     * @param {File} file - The file to upload
+     * @return {Promise<string>} The URL of the uploaded file
+     */
+    async function uploadToFileIo(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://file.io",
+                data: formData,
+                headers: {
+                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
+                    "User-Agent": "tampermonkey-enhanced-reverse-image-search",
+                },
+                onload: function (response) {
+                    const data = JSON.parse(response.responseText);
+                    console.log("File.io response: ");
+                    console.log(data);
+                    if (data.success) {
+                        resolve(data.link);
+                    } else {
+                        reject(data.error);
+                    }
+                },
+                onerror: function (response) {
+                    reject(response);
+                },
+            });
+        });
+        return await response;
+    }
+
     async function uploadToTempCloud(file){
         const formData = new FormData();
         formData.append("file", file);
@@ -419,7 +455,7 @@
      */
     async function getTmpImgLink(file) {
         try {
-            return await uploadTo0x0st(file);
+            return await uploadToFileIo(file);
         } catch (error) {
             console.log("[reverse image search] upload error: ", error);
             showToast(lang("uploadError"), "error");

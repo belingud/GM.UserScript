@@ -6,7 +6,7 @@ Enhanced Reverse Image Search is a Tampermonkey script that allows you to search
 
 github: https://github.com/belingud/GM.UserScript
 
-> Disclaimer: This script is allowed to be used on any page, but does not fetch the page content unless you click on the webpage image to search the image. It does not set any cache or indexdb in the browser, if you use a local file to search for images, it will be uploaded using an anonymous temporary cloud drive (currently using 0x0.st) and then searched using the image link. This script will not store or send any image link, only use the image link of the temporary cloud disk when opening a new page to search images.
+> Disclaimer: This script is allowed to be used on any page, but does not fetch the page content unless you click on the webpage image to search the image. It does not set any cache or indexdb in the browser, if you use a local file to search for images, it will be uploaded using an anonymous temporary cloud drive (currently using file.io) and then searched using the image link. This script will not store or send any image link, only use the image link of the temporary cloud disk when opening a new page to search images.
 
 ## Features
 
