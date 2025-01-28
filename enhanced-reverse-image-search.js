@@ -1,17 +1,18 @@
 // ==UserScript==
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
-// @namespace      https://github.com/belingud/GM.search-by-image
-// @version        0.9.0
+// @namespace      https://github.com/belingud/GM.UserScript
+// @version        1.0.0
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
+// @icon           https://raw.githubusercontent.com/belingud/GM.UserScript/main/artwork/icon.png
 // @author         belingud
 // @license        BSD 3-Clause License
 // @match          *://*/*
 // @grant          GM_openInTab
 // @grant          GM_registerMenuCommand
 // @grant          GM_xmlhttpRequest
-// @connect        0x0.st
+// @connect        tmpfiles.org
 // ==/UserScript==
 
 (function () {
@@ -48,7 +49,7 @@
             selectImageFirst: "Please select an image source first.",
             pleaseSelectFile: "Please select a file before clicking a search engine.",
             uploadError: "Upload failed, please try again or check your network.",
-            dragHint: "Click and drag to move"
+            dragHint: "Click and drag to move",
         },
         zh: {
             selectImageSource: "选择图片来源：",
@@ -76,7 +77,7 @@
             selectImageFirst: "请先选择图片来源。",
             pleaseSelectFile: "请先选择文件，然后再点击搜索引擎。",
             uploadError: "上传失败，请重试或检查网络。",
-            dragHint: "点击空白处拖动"
+            dragHint: "点击空白处拖动",
         },
     };
 
@@ -91,17 +92,17 @@
     let file = ""; // File object
 
     const searchUrl = {
-        "Google Lens": "https://lens.google.com/uploadbyurl?url=${url}",
-        TinEye: "https://www.tineye.com/search/?url=${url}",
-        Yandex: "https://yandex.com/images/search?url=${url}&rpt=imageview",
-        Bing: "https://www.bing.com/images/search?q=imgurl:${url}&view=detailv2&iss=sbi",
-        Sogou: "https://pic.sogou.com/ris?query=https%3A%2F%2Fimg03.sogoucdn.com%2Fv2%2Fthumb%2Fretype_exclude_gif%2Fext%2Fauto%3Fappid%3D122%26url%3D${url}&flag=1&drag=0",
-        Baidu: "https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&carousel=0&promotion_name=pc_image_shituindex&extUiData%5bisLogoShow%5d=1&image=${url}",
-        Trace: "https://trace.moe/?url=${url}",
-        SauceNAO: "https://saucenao.com/search.php?db=999&url=${url}",
-        IQDB: "https://iqdb.org/?url=${url}",
-        "3DIQDB": "https://3d.iqdb.org/?url=${url}",
-        ascii2d: "https://ascii2d.net/search/url/${url}",
+        "Google Lens": `https://lens.google.com/uploadbyurl?url=\${url}`,
+        TinEye: `https://www.tineye.com/search/?url=\${url}`,
+        Yandex: `https://yandex.com/images/search?url=\${url}&rpt=imageview`,
+        Bing: `https://www.bing.com/images/search?q=imgurl:\${url}&view=detailv2&iss=sbi`,
+        Sogou: `https://pic.sogou.com/ris?query=https%3A%2F%2Fimg03.sogoucdn.com%2Fv2%2Fthumb%2Fretype_exclude_gif%2Fext%2Fauto%3Fappid%3D122%26url%3D\${url}&flag=1&drag=0`,
+        Baidu: `https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&carousel=0&promotion_name=pc_image_shituindex&extUiData%5bisLogoShow%5d=1&image=\${url}`,
+        Trace: `https://trace.moe/?url=\${url}`,
+        SauceNAO: `https://saucenao.com/search.php?db=999&url=\${url}`,
+        IQDB: `https://iqdb.org/?url=\${url}`,
+        "3DIQDB": `https://3d.iqdb.org/?url=\${url}`,
+        ascii2d: `https://ascii2d.net/search/url/\${url}`,
     };
 
     const searchEngines = [
@@ -351,95 +352,29 @@
         GM_openInTab(target, { active: true, insert: true, setParent: true });
     }
 
-    /**
-     * Asynchronously uploads a file to 0x0st and returns the uploaded URL.
-     *
-     * @param {File} file - The file to upload
-     * @return {Promise<string>} The URL of the uploaded file
-     */
-    async function uploadTo0x0st(file) {
+    async function uploadToTmpFiles(file) {
         const formData = new FormData();
         formData.append("file", file);
         const response = new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "POST",
-                url: "https://0x0.st",
+                url: "https://tmpfiles.org/api/v1/upload",
                 data: formData,
                 headers: {
-                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
-                    "User-Agent": "tampermonkey-enhanced-reverse-image-search",
-                },
-                onload: function (response) {
-                    const data = response.responseText;
-                    if (data.startsWith("http")) {
-                        resolve(data.trim());
-                    } else {
-                        reject(data);
-                    }
-                },
-                onerror: function (response) {
-                    reject(response);
-                },
-            });
-        });
-        return await response;
-    }
-
-    /**
-     * Asynchronously uploads a file to file.io and returns the uploaded URL.
-     *
-     * @param {File} file - The file to upload
-     * @return {Promise<string>} The URL of the uploaded file
-     */
-    async function uploadToFileIo(file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "POST",
-                url: "https://file.io",
-                data: formData,
-                headers: {
-                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
-                    "User-Agent": "tampermonkey-enhanced-reverse-image-search",
-                },
-                onload: function (response) {
-                    const data = JSON.parse(response.responseText);
-                    console.log("File.io response: ");
-                    console.log(data);
-                    if (data.success) {
-                        resolve(data.link);
-                    } else {
-                        reject(data.error);
-                    }
-                },
-                onerror: function (response) {
-                    reject(response);
-                },
-            });
-        });
-        return await response;
-    }
-
-    async function uploadToTempCloud(file){
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "POST",
-                url: "https://temp.kotol.cloud/api/file-upload?expiration=3600000",
-                data: formData,
-                headers: {
-                    "File-Name": file.name,
                     "X-Client": "tampermonkey-enhanced-reverse-image-search",
                 },
                 onload: function (response) {
                     if (response.status !== 200) {
                         reject(response.responseText);
+                        // {"status":"success","data":{"url":"https://tmpfiles.org/19972538/winter_bg.jpg"}}
                     }
                     const resp = JSON.parse(response.responseText);
                     console.log("upload response: ", resp);
-                    resolve(`https://temp.kotol.cloud/api/download/${file.name}?code=${resp.code}`);
+                    let url = resp.data.url;
+                    if (url.startsWith("https://tmpfiles.org")) {
+                        url = url.replace(/^https:\/\/tmpfiles\.org/, "https://tmpfiles.org/dl");
+                    }
+                    resolve(url);
                 },
                 onerror: function (response) {
                     reject(response);
@@ -455,7 +390,7 @@
      */
     async function getTmpImgLink(file) {
         try {
-            return await uploadToFileIo(file);
+            return await uploadToTmpFiles(file);
         } catch (error) {
             console.log("[reverse image search] upload error: ", error);
             showToast(lang("uploadError"), "error");
@@ -466,19 +401,28 @@
      * Mark the selected image source with a green checkmark.
      * @param {string} id - The id of the selected image source.
      */
+    let selectedSourceId = null; // Store the ID of the currently selected source
+
     function markSelected(id) {
-        imageSources.forEach((source) => {
-            const element = document.getElementById(source.id);
-            if (source.id === id) {
-                element.style.fontWeight = "bold";
-                element.style.color = "green";
-                element.textContent = `✔ ${source.text}`;
-            } else {
-                element.style.fontWeight = "normal";
-                element.style.color = "black";
-                element.textContent = source.text;
+        if (selectedSourceId) {
+            // Reset the previously selected element
+            const prevElement = document.getElementById(selectedSourceId);
+            if (prevElement) {
+                prevElement.style.fontWeight = "normal";
+                prevElement.style.color = "black";
+                prevElement.textContent = prevElement.textContent.replace(/^✔ /, "");
             }
-        });
+        }
+
+        // Mark the newly selected element
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.fontWeight = "bold";
+            element.style.color = "green";
+            element.textContent = `✔ ${element.textContent}`;
+        }
+
+        selectedSourceId = id; // Update the selected source ID
     }
 
     /**
@@ -541,7 +485,10 @@
     }
 
     function makeDraggable(element) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let pos1 = 0,
+            pos2 = 0,
+            pos3 = 0,
+            pos4 = 0;
         element.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
@@ -564,8 +511,8 @@
             pos3 = e.clientX;
             pos4 = e.clientY;
             // set the element's new position:
-            element.style.top = (element.offsetTop - pos2) + "px";
-            element.style.left = (element.offsetLeft - pos1) + "px";
+            element.style.top = element.offsetTop - pos2 + "px";
+            element.style.left = element.offsetLeft - pos1 + "px";
         }
 
         function closeDragElement() {
