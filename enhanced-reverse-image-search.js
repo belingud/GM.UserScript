@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        1.0.3
+// @version        1.1.0
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @icon           https://raw.githubusercontent.com/belingud/GM.UserScript/refs/heads/master/artwork/icon.png
