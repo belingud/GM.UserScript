@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        1.0.2
+// @version        1.0.3
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @icon           https://raw.githubusercontent.com/belingud/GM.UserScript/refs/heads/master/artwork/icon.png
@@ -32,6 +32,7 @@
             googleLens: "Google Lens",
             tinEye: "TinEye",
             yandex: "Yandex",
+            "Lenso.ai": "Lenso.ai",
             bing: "Bing",
             sogou: "Sogou",
             baidu: "Baidu",
@@ -60,6 +61,7 @@
             googleLens: "Google Lens",
             tinEye: "TinEye",
             yandex: "Yandex",
+            "Lenso.ai": "Lenso.ai",
             bing: "必应",
             sogou: "搜狗",
             baidu: "百度",
@@ -95,6 +97,7 @@
         "Google Lens": `https://lens.google.com/uploadbyurl?url=\${url}`,
         TinEye: `https://www.tineye.com/search/?url=\${url}`,
         Yandex: `https://yandex.com/images/search?url=\${url}&rpt=imageview`,
+        "Lenso.ai": `https://lenso.ai/en/search-by-url?url=\${url}`,
         Bing: `https://www.bing.com/images/search?q=imgurl:\${url}&view=detailv2&iss=sbi`,
         Sogou: `https://pic.sogou.com/ris?query=https%3A%2F%2Fimg03.sogoucdn.com%2Fv2%2Fthumb%2Fretype_exclude_gif%2Fext%2Fauto%3Fappid%3D122%26url%3D\${url}&flag=1&drag=0`,
         Baidu: `https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&carousel=0&promotion_name=pc_image_shituindex&extUiData%5bisLogoShow%5d=1&image=\${url}`,
@@ -128,26 +131,35 @@
             },
         },
         {
+            text: lang("Lenso.ai"),
+            handler: async () => {
+                selectedEngine = "Lenso.ai";
+                await searchImage();
+            }
+        },
+        {
             text: lang("bing"),
             handler: async () => {
                 selectedEngine = "Bing";
                 await searchImage();
             },
         },
-        {
-            text: lang("sogou"),
-            handler: async () => {
-                selectedEngine = "Sogou";
-                await searchImage();
-            },
-        },
-        {
-            text: lang("baidu"),
-            handler: async () => {
-                selectedEngine = "Baidu";
-                await searchImage();
-            },
-        },
+        // Sogou Image Search requires uploading to the Sogou server, otherwise it cannot search for images.
+        // {
+        //     text: lang("sogou"),
+        //     handler: async () => {
+        //         selectedEngine = "Sogou";
+        //         await searchImage();
+        //     },
+        // },
+        // Baidu Image Search is in a session, not sure how it works.
+        // {
+        //     text: lang("baidu"),
+        //     handler: async () => {
+        //         selectedEngine = "Baidu";
+        //         await searchImage();
+        //     },
+        // },
         {
             text: lang("trace"),
             handler: async () => {
