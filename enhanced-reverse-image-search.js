@@ -383,8 +383,8 @@
                     const resp = JSON.parse(response.responseText);
                     console.log("upload response: ", resp);
                     let url = resp.data.url;
-                    if (url.startsWith("https://tmpfiles.org")) {
-                        url = url.replace(/^https:\/\/tmpfiles\.org/, "https://tmpfiles.org/dl");
+                    if (url.startsWith("http://tmpfiles.org") || url.startsWith("https://tmpfiles.org")) {
+                        url = url.replace(/^https?:\/\/tmpfiles\.org/, "https://tmpfiles.org/dl");
                     }
                     resolve(url);
                 },
