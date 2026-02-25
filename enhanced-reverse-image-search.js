@@ -2,7 +2,7 @@
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
 // @namespace      https://github.com/belingud/GM.search-by-image
-// @version        1.1.1
+// @version        1.1.2
 // @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
 // @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @icon           https://raw.githubusercontent.com/belingud/GM.UserScript/refs/heads/master/artwork/icon.png
@@ -206,6 +206,157 @@
     // Register the main command in the Tampermonkey menu
     GM_registerMenuCommand("Reverse Image Search", openMenu);
 
+    // Inject Apple-style CSS (called once)
+    function injectStyles() {
+        if (document.getElementById("ris-styles")) return;
+        const style = document.createElement("style");
+        style.id = "ris-styles";
+        style.textContent = `
+            .ris-panel {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 9999;
+                min-width: 220px;
+                max-width: 240px;
+                padding: 16px;
+                background: rgba(255, 255, 255, 0.82);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-radius: 14px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                color: #1d1d1f;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            .ris-section-title {
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #86868b;
+                margin-bottom: 8px;
+                padding: 0 4px;
+            }
+            .ris-option {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 8px 12px;
+                margin-bottom: 4px;
+                border: none;
+                border-radius: 8px;
+                background: rgba(0, 0, 0, 0.04);
+                color: #1d1d1f;
+                font-size: 13px;
+                font-family: inherit;
+                text-align: center;
+                cursor: pointer;
+                transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease;
+            }
+            .ris-option:hover {
+                background: rgba(0, 0, 0, 0.08);
+            }
+            .ris-option:active {
+                transform: scale(0.97);
+                background: rgba(0, 0, 0, 0.12);
+            }
+            .ris-option.ris-selected {
+                background: #007AFF;
+                color: #fff;
+                font-weight: 600;
+            }
+            .ris-divider {
+                height: 1px;
+                background: rgba(0, 0, 0, 0.08);
+                margin: 12px 0;
+            }
+            .ris-drag-hint {
+                font-size: 11px;
+                color: #86868b;
+                text-align: center;
+                font-style: italic;
+                margin-top: 10px;
+            }
+            .ris-close-btn {
+                display: block;
+                width: 100%;
+                padding: 8px;
+                margin-top: 8px;
+                border: none;
+                border-radius: 8px;
+                background: rgba(0, 0, 0, 0.04);
+                color: #86868b;
+                font-size: 13px;
+                font-family: inherit;
+                cursor: pointer;
+                transition: background 0.18s ease, color 0.18s ease;
+            }
+            .ris-close-btn:hover {
+                background: rgba(0, 0, 0, 0.08);
+                color: #1d1d1f;
+            }
+            .ris-loading {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.75);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border-radius: 14px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .ris-spinner {
+                width: 28px;
+                height: 28px;
+                border: 3px solid rgba(0, 122, 255, 0.2);
+                border-top-color: #007AFF;
+                border-radius: 50%;
+                animation: ris-spin 0.8s linear infinite;
+            }
+            .ris-loading-text {
+                margin-top: 8px;
+                font-size: 12px;
+                color: #86868b;
+            }
+            .ris-toast {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 20px;
+                border-radius: 10px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                font-size: 13px;
+                color: #fff;
+                z-index: 10000;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                animation: ris-toast-in 0.3s ease;
+            }
+            .ris-toast-success { background: rgba(52, 199, 89, 0.9); }
+            .ris-toast-error { background: rgba(255, 59, 48, 0.9); }
+            @keyframes ris-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            @keyframes ris-toast-in {
+                from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     // Function to create and open the menu
     function openMenu() {
         // Remove any existing menu
@@ -214,18 +365,11 @@
             existingMenu.remove();
         }
 
+        injectStyles();
+
         const menu = document.createElement("div");
         menu.id = "reverse-image-search-menu";
-        menu.style.position = "fixed";
-        menu.style.top = "10px";
-        menu.style.right = "10px";
-        menu.style.backgroundColor = "#fff";
-        menu.style.border = "1px solid #ccc";
-        menu.style.zIndex = "9999";
-        menu.style.padding = "10px";
-        menu.style.maxWidth = "200px";
-        // font color black
-        menu.style.color = "black";
+        menu.className = "ris-panel";
         document.body.appendChild(menu);
 
         // Make the menu draggable
@@ -233,39 +377,34 @@
 
         // Image source options
         const sourceTitle = document.createElement("div");
+        sourceTitle.className = "ris-section-title";
         sourceTitle.textContent = lang("selectImageSource");
-        sourceTitle.style.marginBottom = "10px";
-        sourceTitle.style.fontWeight = "bold";
         menu.appendChild(sourceTitle);
 
         imageSources.forEach((source) => {
             const sourceOption = document.createElement("div");
+            sourceOption.className = "ris-option";
             sourceOption.textContent = source.text;
             sourceOption.id = source.id;
-            sourceOption.style.cursor = "pointer";
-            sourceOption.style.padding = "5px";
-            sourceOption.style.textAlign = "center";
-            sourceOption.style.border = "1px solid #ddd";
-            sourceOption.style.marginBottom = "5px";
             sourceOption.addEventListener("click", source.handler);
             menu.appendChild(sourceOption);
         });
 
+        // Divider between sections
+        const divider = document.createElement("div");
+        divider.className = "ris-divider";
+        menu.appendChild(divider);
+
         // Search engine buttons
         const engineTitle = document.createElement("div");
+        engineTitle.className = "ris-section-title";
         engineTitle.textContent = lang("selectSearchEngine");
-        engineTitle.style.marginBottom = "10px";
-        engineTitle.style.fontWeight = "bold";
         menu.appendChild(engineTitle);
 
         searchEngines.forEach((engine) => {
             const engineOption = document.createElement("div");
+            engineOption.className = "ris-option";
             engineOption.textContent = engine.text;
-            engineOption.style.cursor = "pointer";
-            engineOption.style.padding = "5px";
-            engineOption.style.textAlign = "center";
-            engineOption.style.border = "1px solid #ddd";
-            engineOption.style.marginBottom = "5px";
             engineOption.addEventListener("click", async () => {
                 if (imgType === "file" && file) {
                     showLoading(menu); // Show loading animation
@@ -277,32 +416,17 @@
 
         // Add drag hint
         const dragHint = document.createElement("div");
+        dragHint.className = "ris-drag-hint";
         dragHint.textContent = lang("dragHint");
-        dragHint.style.fontStyle = "italic";
-        dragHint.style.fontSize = "10px";
-        dragHint.style.marginTop = "10px";
         menu.appendChild(dragHint);
 
         const closeButton = document.createElement("button");
+        closeButton.className = "ris-close-btn";
         closeButton.textContent = lang("close");
-        closeButton.style.marginTop = "10px";
-        closeButton.style.padding = "5px";
-        closeButton.style.width = "100%";
         closeButton.addEventListener("click", () => {
             menu.remove();
         });
         menu.appendChild(closeButton);
-
-        // Add spinner animation keyframes
-        const style = document.createElement("style");
-        style.type = "text/css";
-        style.innerHTML = `
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    `;
-        document.head.appendChild(style);
     }
 
     // Handle select file
@@ -417,24 +541,18 @@
 
     function markSelected(id) {
         if (selectedSourceId) {
-            // Reset the previously selected element
             const prevElement = document.getElementById(selectedSourceId);
             if (prevElement) {
-                prevElement.style.fontWeight = "normal";
-                prevElement.style.color = "black";
-                prevElement.textContent = prevElement.textContent.replace(/^✔ /, "");
+                prevElement.classList.remove("ris-selected");
             }
         }
 
-        // Mark the newly selected element
         const element = document.getElementById(id);
         if (element) {
-            element.style.fontWeight = "bold";
-            element.style.color = "green";
-            element.textContent = `✔ ${element.textContent}`;
+            element.classList.add("ris-selected");
         }
 
-        selectedSourceId = id; // Update the selected source ID
+        selectedSourceId = id;
     }
 
     /**
@@ -444,25 +562,16 @@
     function showLoading(menu) {
         const loadingDiv = document.createElement("div");
         loadingDiv.id = "loading-animation";
-        loadingDiv.style.position = "absolute";
-        loadingDiv.style.top = "0";
-        loadingDiv.style.left = "0";
-        loadingDiv.style.width = "100%";
-        loadingDiv.style.height = "100%";
-        loadingDiv.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-        loadingDiv.style.display = "flex";
-        loadingDiv.style.justifyContent = "center";
-        loadingDiv.style.alignItems = "center";
-        loadingDiv.style.zIndex = "1000";
+        loadingDiv.className = "ris-loading";
 
         const spinner = document.createElement("div");
-        spinner.style.border = "4px solid #f3f3f3";
-        spinner.style.borderRadius = "50%";
-        spinner.style.borderTop = "4px solid #3498db";
-        spinner.style.width = "30px";
-        spinner.style.height = "30px";
-        spinner.style.animation = "spin 2s linear infinite";
+        spinner.className = "ris-spinner";
         loadingDiv.appendChild(spinner);
+
+        const text = document.createElement("div");
+        text.className = "ris-loading-text";
+        text.textContent = lang("loading");
+        loadingDiv.appendChild(text);
 
         menu.appendChild(loadingDiv);
     }
@@ -479,16 +588,8 @@
 
     function showToast(message, type) {
         const toast = document.createElement("div");
+        toast.className = `ris-toast ${type === "success" ? "ris-toast-success" : "ris-toast-error"}`;
         toast.textContent = message;
-        toast.style.position = "fixed";
-        toast.style.bottom = "20px";
-        toast.style.left = "50%";
-        toast.style.transform = "translateX(-50%)";
-        toast.style.backgroundColor = type === "success" ? "#4caf50" : "#f44336";
-        toast.style.color = "#fff";
-        toast.style.padding = "10px 20px";
-        toast.style.borderRadius = "5px";
-        toast.style.zIndex = "10000";
         document.body.appendChild(toast);
 
         setTimeout(() => {
