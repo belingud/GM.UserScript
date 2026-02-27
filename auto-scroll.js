@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         自动随机滚动
 // @namespace    https://github.com/belingud/GM.search-by-image
-// @version      0.4.0
+// @version      0.5.0
 // @description  在指定网站中模拟鼠标滚动，悬浮图标：移入显示开始/停止/配置；配置面板内编辑并保存
 // @match        https://linux.do/*
 // @grant        GM_getValue
@@ -36,11 +36,22 @@
   const s = (k, val) => GM_setValue(k, val);
   const r = (a, b) => Math.random() * (b - a) + a;
 
+  // 本地配置缓存，避免 GM_getValue 缓存导致保存后不生效
+  const conf = {
+    stepMin: +v(K.stepMin, DEF.stepMin),
+    stepMax: +v(K.stepMax, DEF.stepMax),
+    intMin: +v(K.intMin, DEF.intMin),
+    intMax: +v(K.intMax, DEF.intMax),
+    smooth: +v(K.smooth, DEF.smooth),
+    stopAfterMin: +v(K.stopAfterMin, DEF.stopAfterMin),
+    autoStop: +v(K.autoStop, DEF.autoStop),
+    bottomWaitSec: +v(K.bottomWaitSec, DEF.bottomWaitSec),
+  };
+
   const stop = () => {
     clearTimeout(g.__as_t || 0);
     clearTimeout(g.__as_stop || 0);
     g.__as_t = g.__as_stop = null;
-    if (g.__as_obs) { g.__as_obs.disconnect(); g.__as_obs = null; }
     s(K.enabled, 0);
     setUiState(false);
   };
@@ -48,14 +59,13 @@
   const start = () => {
     clearTimeout(g.__as_t || 0);
     clearTimeout(g.__as_stop || 0);
-    if (g.__as_obs) { g.__as_obs.disconnect(); g.__as_obs = null; }
 
-    const stepMin = +v(K.stepMin, DEF.stepMin), stepMax = +v(K.stepMax, DEF.stepMax);
-    const intMin = +v(K.intMin, DEF.intMin), intMax = +v(K.intMax, DEF.intMax);
-    const smooth = +v(K.smooth, DEF.smooth);
-    const stopAfterMin = +v(K.stopAfterMin, DEF.stopAfterMin);
-    const autoStop = +v(K.autoStop, DEF.autoStop);
-    const bottomWaitSec = +v(K.bottomWaitSec, DEF.bottomWaitSec);
+    const stepMin = conf.stepMin, stepMax = conf.stepMax;
+    const intMin = conf.intMin, intMax = conf.intMax;
+    const smooth = conf.smooth;
+    const stopAfterMin = conf.stopAfterMin;
+    const autoStop = conf.autoStop;
+    const bottomWaitSec = conf.bottomWaitSec;
 
     const a0 = isFinite(stepMin) ? stepMin : DEF.stepMin;
     const b0 = isFinite(stepMax) ? stepMax : DEF.stepMax;
@@ -66,12 +76,7 @@
     const intA = Math.min(c0, d0), intB = Math.max(c0, d0);
 
     let bottomSince = 0;
-    let lastMutationTime = Date.now();
-
-    if (autoStop) {
-      g.__as_obs = new MutationObserver(() => { lastMutationTime = Date.now(); });
-      g.__as_obs.observe(document.body, { childList: true, subtree: true });
-    }
+    let lastScrollHeight = 0;
 
     s(K.enabled, 1);
     setUiState(true);
@@ -85,7 +90,9 @@
         const doc = document.documentElement;
         const atBottom = (g.scrollY + g.innerHeight) >= (doc.scrollHeight - 5);
         if (atBottom) {
-          if (lastMutationTime > bottomSince) {
+          if (doc.scrollHeight !== lastScrollHeight) {
+            // 页面高度变化说明有新内容加载，重新计时
+            lastScrollHeight = doc.scrollHeight;
             bottomSince = Date.now();
           } else if (bottomSince > 0 && Date.now() - bottomSince >= waitMs) {
             stop();
@@ -93,6 +100,7 @@
           }
         } else {
           bottomSince = 0;
+          lastScrollHeight = 0;
         }
       }
 
@@ -427,14 +435,22 @@
       const x = +cfg.querySelector(`[name="${name}"]`).value;
       return isFinite(x) ? x : d;
     };
-    s(K.stepMin, getNum("stepMin", DEF.stepMin));
-    s(K.stepMax, getNum("stepMax", DEF.stepMax));
-    s(K.intMin, getNum("intMin", DEF.intMin));
-    s(K.intMax, getNum("intMax", DEF.intMax));
-    s(K.smooth, getNum("smooth", DEF.smooth) ? 1 : 0);
-    s(K.stopAfterMin, getNum("stopAfterMin", DEF.stopAfterMin));
-    s(K.autoStop, getNum("autoStop", DEF.autoStop) ? 1 : 0);
-    s(K.bottomWaitSec, getNum("bottomWaitSec", DEF.bottomWaitSec));
+    conf.stepMin = getNum("stepMin", DEF.stepMin);
+    conf.stepMax = getNum("stepMax", DEF.stepMax);
+    conf.intMin = getNum("intMin", DEF.intMin);
+    conf.intMax = getNum("intMax", DEF.intMax);
+    conf.smooth = getNum("smooth", DEF.smooth) ? 1 : 0;
+    conf.stopAfterMin = getNum("stopAfterMin", DEF.stopAfterMin);
+    conf.autoStop = getNum("autoStop", DEF.autoStop) ? 1 : 0;
+    conf.bottomWaitSec = getNum("bottomWaitSec", DEF.bottomWaitSec);
+    s(K.stepMin, conf.stepMin);
+    s(K.stepMax, conf.stepMax);
+    s(K.intMin, conf.intMin);
+    s(K.intMax, conf.intMax);
+    s(K.smooth, conf.smooth);
+    s(K.stopAfterMin, conf.stopAfterMin);
+    s(K.autoStop, conf.autoStop);
+    s(K.bottomWaitSec, conf.bottomWaitSec);
     applyTheme();
   };
 
