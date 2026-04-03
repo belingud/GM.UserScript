@@ -51,6 +51,14 @@
             pleaseSelectFile: "Please select a file before clicking a search engine.",
             uploadError: "Upload failed, please try again or check your network.",
             dragHint: "Click and drag to move",
+            pasteImage: "Paste Image",
+            clipboardEmpty: "No image found in clipboard.",
+            clipboardPermissionDenied: "Clipboard permission denied. Please allow access to paste images.",
+            pressCtrlV: "Press Ctrl+V to paste image.",
+            pasteDialogTitle: "Paste Image",
+            pasteDialogHint: "Press Ctrl+V  /  Long press here to paste",
+            pasteDialogUploading: "Uploading...",
+            pasteDialogCancel: "Cancel",
         },
         zh: {
             selectImageSource: "选择图片来源：",
@@ -80,6 +88,14 @@
             pleaseSelectFile: "请先选择文件，然后再点击搜索引擎。",
             uploadError: "上传失败，请重试或检查网络。",
             dragHint: "点击空白处拖动",
+            pasteImage: "粘贴图片",
+            clipboardEmpty: "剪贴板中未找到图片。",
+            clipboardPermissionDenied: "剪贴板权限被拒绝。请允许访问剪贴板以粘贴图片。",
+            pressCtrlV: "请按 Ctrl+V 粘贴图片。",
+            pasteDialogTitle: "粘贴图片",
+            pasteDialogHint: "按 Ctrl+V  /  手机长按此处粘贴",
+            pasteDialogUploading: "上传中...",
+            pasteDialogCancel: "取消",
         },
     };
 
@@ -201,6 +217,7 @@
         { text: lang("selectFile"), handler: selectFile, id: "select-file" },
         { text: lang("pasteURL"), handler: pasteURL, id: "paste-url" },
         { text: lang("clickImage"), handler: clickImage, id: "click-image" },
+        { text: lang("pasteImage"), handler: pasteImage, id: "paste-image" },
     ];
 
     // Register the main command in the Tampermonkey menu
@@ -267,6 +284,77 @@
                 background: #007AFF;
                 color: #fff;
                 font-weight: 600;
+            }
+            .ris-option.ris-waiting {
+                background: rgba(0, 122, 255, 0.12);
+                color: #007AFF;
+                font-weight: 600;
+            }
+            .ris-paste-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 2147483646;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .ris-paste-dialog {
+                background: #fff;
+                border-radius: 16px;
+                padding: 24px 28px 18px;
+                min-width: 260px;
+                max-width: 320px;
+                width: 90vw;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .ris-paste-dialog-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #1d1d1f;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+            .ris-paste-area {
+                width: 100%;
+                min-height: 72px;
+                border: 2px dashed #007AFF;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #007AFF;
+                font-size: 13px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                cursor: text;
+                outline: none;
+                box-sizing: border-box;
+                padding: 12px;
+                -webkit-user-select: text;
+                user-select: text;
+                text-align: center;
+            }
+            .ris-paste-area:focus {
+                border-color: #0051a8;
+                background: rgba(0,122,255,0.04);
+            }
+            .ris-paste-dialog-uploading {
+                font-size: 13px;
+                color: #86868b;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+            .ris-paste-dialog-cancel {
+                background: none;
+                border: none;
+                color: #007AFF;
+                font-size: 14px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                cursor: pointer;
+                padding: 6px 12px;
+                border-radius: 8px;
             }
             .ris-divider {
                 height: 1px;
@@ -463,6 +551,88 @@
                 event.preventDefault(); // Prevent default link behavior
             }
         });
+    }
+
+    // Handle paste image from clipboard
+    function pasteImage() {
+        imgType = "clipboard";
+
+        const overlay = document.createElement("div");
+        overlay.className = "ris-paste-overlay";
+
+        const dialog = document.createElement("div");
+        dialog.className = "ris-paste-dialog";
+
+        const title = document.createElement("div");
+        title.className = "ris-paste-dialog-title";
+        title.textContent = lang("pasteDialogTitle");
+
+        // Focusable paste target — supports Ctrl+V on desktop and long-press on mobile
+        const pasteArea = document.createElement("div");
+        pasteArea.className = "ris-paste-area";
+        pasteArea.contentEditable = "true";
+        pasteArea.textContent = lang("pasteDialogHint");
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "ris-paste-dialog-cancel";
+        cancelBtn.textContent = lang("pasteDialogCancel");
+
+        dialog.appendChild(title);
+        dialog.appendChild(pasteArea);
+        dialog.appendChild(cancelBtn);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // Auto-focus so keyboard paste works immediately
+        setTimeout(() => pasteArea.focus(), 50);
+
+        const close = () => {
+            overlay.remove();
+            clearTimeout(timeout);
+        };
+
+        cancelBtn.addEventListener("click", close);
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+        pasteArea.addEventListener("paste", async (event) => {
+            const items = event.clipboardData && event.clipboardData.items;
+            let imageBlob = null;
+            if (items) {
+                for (const item of items) {
+                    if (item.type.startsWith("image/")) {
+                        imageBlob = item.getAsFile();
+                        break;
+                    }
+                }
+            }
+
+            if (!imageBlob) {
+                close();
+                showToast(lang("clipboardEmpty"), "error");
+                return;
+            }
+
+            event.preventDefault();
+            clearTimeout(timeout);
+
+            // Show uploading state
+            pasteArea.contentEditable = "false";
+            pasteArea.textContent = "";
+            const uploading = document.createElement("span");
+            uploading.className = "ris-paste-dialog-uploading";
+            uploading.textContent = lang("pasteDialogUploading");
+            pasteArea.appendChild(uploading);
+            cancelBtn.remove();
+
+            const uploadFile = new File([imageBlob], "clipboard-image.png", { type: imageBlob.type });
+            imageSrc = await getTmpImgLink(uploadFile);
+            overlay.remove();
+            if (imageSrc) {
+                markSelected("paste-image");
+            }
+        });
+
+        const timeout = setTimeout(close, 30000);
     }
 
     // Perform image search
