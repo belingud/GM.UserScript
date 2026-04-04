@@ -44,7 +44,7 @@ github: https://github.com/belingud/GM.UserScript
 
 点击扩展的初始界面：
 
-![](https://gmuserscript.lte.ink/popup.png)
+![](https://cdn.jsdelivr.net/gh/belingud/GM.UserScript@master/artwork/popup-zh.png)
 
 **选择文件**会打开文件管理器进行文件选择。
 **粘贴链接**会打开输入框输入URL。
@@ -55,7 +55,7 @@ github: https://github.com/belingud/GM.UserScript
 
 选择图片之后的状态：
 
-![](https://gmuserscript.lte.ink/selected.png)
+![](https://cdn.jsdelivr.net/gh/belingud/GM.UserScript@master/artwork/selected-zh.png)
 
 选择完图片之后可以点击选择搜索引擎打开新页面搜索。
 
