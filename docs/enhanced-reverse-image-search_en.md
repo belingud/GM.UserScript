@@ -2,7 +2,7 @@
 
 Description
 
-Enhanced Reverse Image Search is a Tampermonkey script that allows you to search images using various methods such as local files, pasted links, or clicking on web images. It supports multiple search engines including Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, and ascii2d.
+Enhanced Reverse Image Search is a Tampermonkey script that allows you to search images using various methods such as local files, pasted links, clicking on web images, or pasting images directly from the clipboard. It supports multiple search engines including Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, and ascii2d.
 
 github: https://github.com/belingud/GM.UserScript
 
@@ -10,7 +10,7 @@ github: https://github.com/belingud/GM.UserScript
 
 ## Features
 
-- Select Image Source: Choose from local files, pasted URLs, or clicking images on the web.
+- Select Image Source: Choose from local files, pasted URLs, clicking images on the web, or pasting clipboard images.
 - Search Engines Supported:
   - Google Lens
   - TinEye
@@ -39,6 +39,7 @@ github: https://github.com/belingud/GM.UserScript
     - Select File: Upload a local file.
     - Paste URL: Paste an image URL.
     - Click Image: Click an image on the current webpage.
+    - Paste Image: Paste an image from clipboard (press Ctrl+V on desktop, or long press on mobile).
 3. Choose a search engine to perform the reverse image search.
 
 Click on the initial screen of the extension:
