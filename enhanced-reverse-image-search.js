@@ -12,7 +12,7 @@
 // @grant          GM_openInTab
 // @grant          GM_registerMenuCommand
 // @grant          GM_xmlhttpRequest
-// @connect        tmpfiles.org
+// @connect        uguu.se
 // ==/UserScript==
 
 (function () {
@@ -621,7 +621,7 @@
             cancelBtn.remove();
 
             const uploadFile = new File([imageBlob], "clipboard-image.png", { type: imageBlob.type });
-            imageSrc = await getTmpImgLink(uploadFile);
+            imageSrc = await getUploadedImageLink(uploadFile);
             overlay.remove();
             if (imageSrc) {
                 markSelected("paste-image");
@@ -638,7 +638,7 @@
             return;
         }
         if (imgType === "file") {
-            imageSrc = await getTmpImgLink(file);
+            imageSrc = await getUploadedImageLink(file);
             hideLoading(); // Hide loading animation after getting the link
         }
         if (!imageSrc) {
@@ -654,29 +654,26 @@
         GM_openInTab(target, { active: true, insert: true, setParent: true });
     }
 
-    async function uploadToTmpFiles(file) {
+    async function uploadToUguu(file) {
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("files[]", file, file.name || "image.png");
         const response = new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "POST",
-                url: "https://tmpfiles.org/api/v1/upload",
+                url: "https://uguu.se/upload",
                 data: formData,
-                headers: {
-                    "X-Client": "tampermonkey-enhanced-reverse-image-search",
-                },
                 onload: function (response) {
                     if (response.status !== 200) {
                         reject(response.responseText);
-                        // {"status":"success","data":{"url":"https://tmpfiles.org/19972538/winter_bg.jpg"}}
+                        return;
                     }
                     const resp = JSON.parse(response.responseText);
                     console.log("upload response: ", resp);
-                    let url = resp.data.url;
-                    if (url.startsWith("http://tmpfiles.org") || url.startsWith("https://tmpfiles.org")) {
-                        url = url.replace(/^https?:\/\/tmpfiles\.org/, "https://tmpfiles.org/dl");
+                    if (!resp.success || !resp.files || !resp.files[0] || !resp.files[0].url) {
+                        reject(resp);
+                        return;
                     }
-                    resolve(url);
+                    resolve(resp.files[0].url);
                 },
                 onerror: function (response) {
                     reject(response);
@@ -687,12 +684,12 @@
     }
 
     /**
-     * 使用临时网盘来将文件转为链接搜图
+     * 使用 Uguu 将文件转为链接搜图
      * @param {*} file
      */
-    async function getTmpImgLink(file) {
+    async function getUploadedImageLink(file) {
         try {
-            return await uploadToTmpFiles(file);
+            return await uploadToUguu(file);
         } catch (error) {
             console.log("[reverse image search] upload error: ", error);
             showToast(lang("uploadError"), "error");
