@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name           以图搜图增强版
 // @name:en        Enhanced Reverse Image Search
-// @namespace      https://github.com/belingud/GM.search-by-image
-// @version        1.3.0
-// @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
-// @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
+// @namespace      https://github.com/belingud/GM.UserScript
+// @version        1.4.0
+// @description    以图搜图增强版，可以使用本地文件、粘贴链接、点击网页图片方式来搜图。支持谷歌Lens、TinEye、Yandex、Copyseeker、Bing、搜狗、百度、trace、SauceNAO、IQDB、3DIQDB、ascii2d搜索引擎。
+// @description:en Enhanced Reverse image search. You can search images using local files, pasting links, and clicking web images. Supports Google Lens, TinEye, Yandex, Copyseeker, Bing, Sogou, Baidu, trace, SauceNAO, IQDB, 3DIQDB, ascii2d search engines.
 // @icon           https://cdn.jsdelivr.net/gh/belingud/GM.UserScript@refs/heads/master/artwork/icon.png
 // @author         belingud
 // @license        BSD 3-Clause License
 // @match          *://*/*
 // @grant          GM_openInTab
 // @grant          GM_registerMenuCommand
+// @grant          GM_setValue
+// @grant          GM_getValue
 // @grant          GM_xmlhttpRequest
 // @connect        uguu.se
 // ==/UserScript==
@@ -32,6 +34,7 @@
             googleLens: "Google Lens",
             tinEye: "TinEye",
             yandex: "Yandex",
+            copyseeker: "Copyseeker",
             "Lenso.ai": "Lenso.ai",
             bing: "Bing",
             sogou: "Sogou",
@@ -57,6 +60,7 @@
             pasteDialogHint: "Press Ctrl+V  /  Long press here to paste",
             pasteDialogUploading: "Uploading...",
             pasteDialogCancel: "Cancel",
+            copyseekerUrlOnly: "Copyseeker only supports http/https image URLs.",
         },
         zh: {
             selectImageSource: "选择图片来源：",
@@ -67,6 +71,7 @@
             googleLens: "Google Lens",
             tinEye: "TinEye",
             yandex: "Yandex",
+            copyseeker: "Copyseeker",
             "Lenso.ai": "Lenso.ai",
             bing: "必应",
             sogou: "搜狗",
@@ -92,6 +97,7 @@
             pasteDialogHint: "按 Ctrl+V  /  手机长按此处粘贴",
             pasteDialogUploading: "上传中...",
             pasteDialogCancel: "取消",
+            copyseekerUrlOnly: "Copyseeker 只支持 http/https 图片链接。",
         },
     };
 
@@ -104,6 +110,9 @@
     let selectedEngine = ""; // Selected search engine
     let imgType = ""; // Image type
     let file = ""; // File object
+    const menuSizeKey = "ris_menu_size";
+    const minMenuWidth = 180;
+    const minMenuHeight = 180;
 
     const searchUrl = {
         "Google Lens": `https://lens.google.com/uploadbyurl?url=\${url}`,
@@ -139,6 +148,13 @@
             text: lang("yandex"),
             handler: async () => {
                 selectedEngine = "Yandex";
+                await searchImage();
+            },
+        },
+        {
+            text: lang("copyseeker"),
+            handler: async () => {
+                selectedEngine = "Copyseeker";
                 await searchImage();
             },
         },
@@ -229,10 +245,15 @@
                 position: fixed;
                 top: 10px;
                 right: 10px;
+                top: max(10px, env(safe-area-inset-top));
+                right: max(10px, env(safe-area-inset-right));
                 z-index: 9999;
-                min-width: 220px;
-                max-width: 240px;
-                padding: 16px;
+                width: min(240px, calc(100vw - 20px));
+                min-width: 180px;
+                min-height: 180px;
+                max-width: calc(100vw - 20px);
+                max-height: calc(100vh - 20px);
+                max-height: calc(100dvh - 20px);
                 background: rgba(255, 255, 255, 0.82);
                 backdrop-filter: blur(20px);
                 -webkit-backdrop-filter: blur(20px);
@@ -243,6 +264,19 @@
                 color: #1d1d1f;
                 font-size: 13px;
                 line-height: 1.4;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .ris-content {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                padding: 16px;
+                box-sizing: border-box;
+                overflow: auto;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
             }
             .ris-section-title {
                 font-size: 11px;
@@ -365,13 +399,15 @@
                 margin-top: 10px;
             }
             .ris-close-btn {
+                position: sticky;
+                bottom: 0;
                 display: block;
                 width: 100%;
                 padding: 8px;
                 margin-top: 8px;
                 border: none;
                 border-radius: 8px;
-                background: rgba(0, 0, 0, 0.04);
+                background: rgba(245, 245, 247, 0.96);
                 color: #86868b;
                 font-size: 13px;
                 font-family: inherit;
@@ -381,6 +417,84 @@
             .ris-close-btn:hover {
                 background: rgba(0, 0, 0, 0.08);
                 color: #1d1d1f;
+            }
+            .ris-resize-handle {
+                position: absolute;
+                z-index: 1001;
+                display: block;
+                padding: 0;
+                border: none;
+                background: transparent;
+                appearance: none;
+                -webkit-appearance: none;
+                pointer-events: auto;
+                touch-action: none;
+            }
+            .ris-resize-handle[data-direction="n"] {
+                top: 0;
+                left: 14px;
+                right: 14px;
+                height: 7px;
+                cursor: ns-resize;
+            }
+            .ris-resize-handle[data-direction="s"] {
+                bottom: 0;
+                left: 14px;
+                right: 14px;
+                height: 7px;
+                cursor: ns-resize;
+            }
+            .ris-resize-handle[data-direction="e"] {
+                top: 14px;
+                right: 0;
+                bottom: 14px;
+                width: 7px;
+                cursor: ew-resize;
+            }
+            .ris-resize-handle[data-direction="w"] {
+                top: 14px;
+                left: 0;
+                bottom: 14px;
+                width: 7px;
+                cursor: ew-resize;
+            }
+            .ris-resize-handle[data-direction="ne"],
+            .ris-resize-handle[data-direction="nw"],
+            .ris-resize-handle[data-direction="se"],
+            .ris-resize-handle[data-direction="sw"] {
+                width: 18px;
+                height: 18px;
+            }
+            .ris-resize-handle[data-direction="ne"] {
+                top: 0;
+                right: 0;
+                cursor: nesw-resize;
+            }
+            .ris-resize-handle[data-direction="nw"] {
+                top: 0;
+                left: 0;
+                cursor: nwse-resize;
+            }
+            .ris-resize-handle[data-direction="se"] {
+                right: 0;
+                bottom: 0;
+                cursor: nwse-resize;
+            }
+            .ris-resize-handle[data-direction="sw"] {
+                left: 0;
+                bottom: 0;
+                cursor: nesw-resize;
+            }
+            .ris-resize-handle[data-direction="sw"]::before {
+                content: "";
+                position: absolute;
+                left: 4px;
+                bottom: 4px;
+                width: 10px;
+                height: 10px;
+                border-left: 2px solid rgba(0, 0, 0, 0.28);
+                border-bottom: 2px solid rgba(0, 0, 0, 0.28);
+                border-radius: 0 0 0 3px;
             }
             .ris-loading {
                 position: absolute;
@@ -437,6 +551,74 @@
                 from { opacity: 0; transform: translateX(-50%) translateY(10px); }
                 to { opacity: 1; transform: translateX(-50%) translateY(0); }
             }
+            @media (max-width: 480px), (max-height: 620px) {
+                .ris-panel {
+                    top: 8px;
+                    right: 8px;
+                    top: max(8px, env(safe-area-inset-top));
+                    right: max(8px, env(safe-area-inset-right));
+                    width: min(212px, calc(100vw - 16px));
+                    max-width: calc(100vw - 16px);
+                    max-height: calc(100vh - 64px);
+                    max-height: calc(100dvh - 64px - env(safe-area-inset-bottom));
+                    border-radius: 12px;
+                    font-size: 12px;
+                }
+                .ris-content {
+                    padding: 10px;
+                }
+                .ris-section-title {
+                    font-size: 10px;
+                    margin-bottom: 5px;
+                    padding: 0 2px;
+                }
+                .ris-option {
+                    padding: 6px 8px;
+                    margin-bottom: 3px;
+                    border-radius: 7px;
+                    font-size: 12px;
+                }
+                .ris-divider {
+                    margin: 8px 0;
+                }
+                .ris-drag-hint {
+                    margin-top: 6px;
+                    font-size: 10px;
+                }
+                .ris-close-btn {
+                    padding: 7px;
+                    margin-top: 6px;
+                    font-size: 12px;
+                }
+                .ris-resize-handle[data-direction="ne"],
+                .ris-resize-handle[data-direction="nw"],
+                .ris-resize-handle[data-direction="se"],
+                .ris-resize-handle[data-direction="sw"] {
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+            @media (max-height: 520px) {
+                .ris-panel {
+                    width: min(220px, calc(100vw - 16px));
+                }
+                .ris-content {
+                    padding: 8px;
+                }
+                .ris-option {
+                    padding: 5px 8px;
+                    margin-bottom: 2px;
+                }
+                .ris-section-title {
+                    margin-bottom: 4px;
+                }
+                .ris-divider {
+                    margin: 6px 0;
+                }
+                .ris-drag-hint {
+                    display: none;
+                }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -454,7 +636,12 @@
         const menu = document.createElement("div");
         menu.id = "reverse-image-search-menu";
         menu.className = "ris-panel";
+        applyMenuSize(menu, getMenuSize());
         document.body.appendChild(menu);
+
+        const content = document.createElement("div");
+        content.className = "ris-content";
+        menu.appendChild(content);
 
         // Make the menu draggable
         makeDraggable(menu);
@@ -463,7 +650,7 @@
         const sourceTitle = document.createElement("div");
         sourceTitle.className = "ris-section-title";
         sourceTitle.textContent = lang("selectImageSource");
-        menu.appendChild(sourceTitle);
+        content.appendChild(sourceTitle);
 
         imageSources.forEach((source) => {
             const sourceOption = document.createElement("div");
@@ -471,19 +658,19 @@
             sourceOption.textContent = source.text;
             sourceOption.id = source.id;
             sourceOption.addEventListener("click", source.handler);
-            menu.appendChild(sourceOption);
+            content.appendChild(sourceOption);
         });
 
         // Divider between sections
         const divider = document.createElement("div");
         divider.className = "ris-divider";
-        menu.appendChild(divider);
+        content.appendChild(divider);
 
         // Search engine buttons
         const engineTitle = document.createElement("div");
         engineTitle.className = "ris-section-title";
         engineTitle.textContent = lang("selectSearchEngine");
-        menu.appendChild(engineTitle);
+        content.appendChild(engineTitle);
 
         searchEngines.forEach((engine) => {
             const engineOption = document.createElement("div");
@@ -495,14 +682,14 @@
                 }
                 await engine.handler();
             });
-            menu.appendChild(engineOption);
+            content.appendChild(engineOption);
         });
 
         // Add drag hint
         const dragHint = document.createElement("div");
         dragHint.className = "ris-drag-hint";
         dragHint.textContent = lang("dragHint");
-        menu.appendChild(dragHint);
+        content.appendChild(dragHint);
 
         const closeButton = document.createElement("button");
         closeButton.className = "ris-close-btn";
@@ -510,7 +697,19 @@
         closeButton.addEventListener("click", () => {
             menu.remove();
         });
-        menu.appendChild(closeButton);
+        content.appendChild(closeButton);
+
+        ["n", "e", "s", "w", "ne", "nw", "se", "sw"].forEach((direction) => {
+            const resizeHandle = document.createElement("button");
+            resizeHandle.type = "button";
+            resizeHandle.className = "ris-resize-handle";
+            resizeHandle.dataset.direction = direction;
+            resizeHandle.tabIndex = -1;
+            resizeHandle.title = "Resize";
+            resizeHandle.setAttribute("aria-label", "Resize menu");
+            menu.appendChild(resizeHandle);
+            makeResizable(menu, resizeHandle, direction);
+        });
     }
 
     // Handle select file
@@ -644,6 +843,10 @@
         if (!imageSrc) {
             return;
         }
+        if (selectedEngine === "Copyseeker") {
+            triggerCopyseekerSearch(imageSrc);
+            return;
+        }
         let tmp;
         if (selectedEngine !== "ascii2d") {
             tmp = encodeURIComponent(imageSrc);
@@ -652,6 +855,21 @@
         }
         let target = searchUrl[selectedEngine].replace("${url}", tmp);
         GM_openInTab(target, { active: true, insert: true, setParent: true });
+    }
+
+    function triggerCopyseekerSearch(url) {
+        if (!/^https?:\/\//i.test(url)) {
+            showToast(lang("copyseekerUrlOnly"), "error");
+            return;
+        }
+
+        try {
+            GM_setValue("ris_copyseeker_image_url", url);
+            GM_openInTab("https://copyseeker.net/", { active: true, insert: true, setParent: true });
+        } catch (error) {
+            console.log("[reverse image search] Copyseeker open error: ", error);
+            showToast(lang("uploadError"), "error");
+        }
     }
 
     async function uploadToUguu(file) {
@@ -760,6 +978,237 @@
         }, 3000);
     }
 
+    function autoSubmitCopyseekerSearch() {
+        if (!window.location.hostname.includes("copyseeker.net")) return;
+
+        let imageUrl = "";
+        try {
+            imageUrl = GM_getValue("ris_copyseeker_image_url", "");
+        } catch (error) {
+            return;
+        }
+        if (!imageUrl) return;
+
+        const selectors = [
+            "input#url",
+            'input[name="url"]',
+            'input[type="url"]',
+            'input[placeholder*="URL" i]',
+            'input[placeholder*="image" i]',
+            'input[placeholder*="address" i]',
+            "textarea"
+        ];
+
+        function findInput() {
+            for (const selector of selectors) {
+                const input = document.querySelector(selector);
+                if (input) return input;
+            }
+            return null;
+        }
+
+        function setInputValue(input, value) {
+            const prototype = input instanceof HTMLTextAreaElement
+                ? HTMLTextAreaElement.prototype
+                : HTMLInputElement.prototype;
+            const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
+            if (descriptor && descriptor.set) {
+                descriptor.set.call(input, value);
+            } else {
+                input.value = value;
+            }
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        function submitInput(input) {
+            const form = input.closest("form");
+            if (form && typeof form.requestSubmit === "function") {
+                form.requestSubmit();
+                return;
+            }
+
+            const button = document.querySelector(".search-button")
+                || document.querySelector('button[type="submit"]')
+                || Array.from(document.querySelectorAll("button")).find((item) => /search|submit|搜|find/i.test(item.textContent || ""));
+
+            if (button) {
+                button.click();
+                return;
+            }
+
+            input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true }));
+            input.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", bubbles: true }));
+        }
+
+        let retries = 0;
+        const retryLimit = 40;
+        const timer = setInterval(() => {
+            const input = findInput();
+            if (!input) {
+                if (++retries >= retryLimit) clearInterval(timer);
+                return;
+            }
+
+            clearInterval(timer);
+            setInputValue(input, imageUrl);
+            GM_setValue("ris_copyseeker_image_url", "");
+            setTimeout(() => submitInput(input), 200);
+        }, 150);
+    }
+
+    function clampMenuSize(width, height, maxWidth, maxHeight) {
+        return {
+            width: Math.min(maxWidth, Math.max(minMenuWidth, width)),
+            height: Math.min(maxHeight, Math.max(minMenuHeight, height)),
+        };
+    }
+
+    function getViewportMenuBounds() {
+        const viewportWidth = window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || 240;
+        const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 320;
+        const bottomReserve = window.matchMedia && window.matchMedia("(max-width: 480px), (max-height: 620px)").matches ? 64 : 16;
+        return {
+            maxWidth: Math.max(minMenuWidth, viewportWidth - 16),
+            maxHeight: Math.max(minMenuHeight, viewportHeight - bottomReserve),
+        };
+    }
+
+    function getMenuSize() {
+        try {
+            const raw = GM_getValue(menuSizeKey, "");
+            if (!raw) return null;
+            const size = typeof raw === "string" ? JSON.parse(raw) : raw;
+            const width = Number(size.width);
+            const height = Number(size.height);
+            if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+
+            const bounds = getViewportMenuBounds();
+            return clampMenuSize(width, height, bounds.maxWidth, bounds.maxHeight);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function applyMenuSize(element, size) {
+        if (!size) return;
+        element.style.width = `${size.width}px`;
+        element.style.height = `${size.height}px`;
+    }
+
+    function saveMenuSize(width, height) {
+        try {
+            GM_setValue(menuSizeKey, JSON.stringify({ width: Math.round(width), height: Math.round(height) }));
+        } catch (error) {}
+    }
+
+    function resetMenuSize(element) {
+        element.style.width = "";
+        element.style.height = "";
+        try {
+            GM_setValue(menuSizeKey, "");
+        } catch (error) {}
+    }
+
+    function makeResizable(element, handle, direction) {
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+        let startRight = 0;
+        let startBottom = 0;
+        let currentSize = null;
+
+        function getResizeBounds() {
+            const viewportWidth = window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || 240;
+            const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 320;
+            const bottomReserve = window.matchMedia && window.matchMedia("(max-width: 480px), (max-height: 620px)").matches ? 64 : 8;
+            return {
+                maxWidth: direction.includes("w")
+                    ? Math.max(minMenuWidth, startRight - 8)
+                    : Math.max(minMenuWidth, viewportWidth - startLeft - 8),
+                maxHeight: direction.includes("n")
+                    ? Math.max(minMenuHeight, startBottom - 8)
+                    : Math.max(minMenuHeight, viewportHeight - startTop - bottomReserve),
+            };
+        }
+
+        function onPointerMove(e) {
+            e.preventDefault();
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            const bounds = getResizeBounds();
+            let width = startWidth;
+            let height = startHeight;
+
+            if (direction.includes("e")) {
+                width = startWidth + dx;
+            } else if (direction.includes("w")) {
+                width = startWidth - dx;
+            }
+
+            if (direction.includes("s")) {
+                height = startHeight + dy;
+            } else if (direction.includes("n")) {
+                height = startHeight - dy;
+            }
+
+            currentSize = clampMenuSize(width, height, bounds.maxWidth, bounds.maxHeight);
+
+            if (direction.includes("w")) {
+                element.style.left = `${startRight - currentSize.width}px`;
+            }
+            if (direction.includes("n")) {
+                element.style.top = `${startBottom - currentSize.height}px`;
+            }
+            element.style.width = `${currentSize.width}px`;
+            element.style.height = `${currentSize.height}px`;
+        }
+
+        function onPointerUp() {
+            document.removeEventListener("pointermove", onPointerMove);
+            document.removeEventListener("pointerup", onPointerUp);
+            if (currentSize) {
+                saveMenuSize(currentSize.width, currentSize.height);
+            }
+        }
+
+        handle.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+        });
+
+        handle.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const rect = element.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = rect.left;
+            startTop = rect.top;
+            startWidth = rect.width;
+            startHeight = rect.height;
+            startRight = rect.right;
+            startBottom = rect.bottom;
+            currentSize = { width: startWidth, height: startHeight };
+
+            element.style.left = `${startLeft}px`;
+            element.style.top = `${startTop}px`;
+            element.style.right = "auto";
+
+            document.addEventListener("pointermove", onPointerMove, { passive: false });
+            document.addEventListener("pointerup", onPointerUp);
+        });
+
+        handle.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetMenuSize(element);
+        });
+    }
+
     function makeDraggable(element) {
         let pos1 = 0,
             pos2 = 0,
@@ -769,7 +1218,12 @@
 
         function dragMouseDown(e) {
             e = e || window.event;
+            if (e.target && e.target.closest && e.target.closest(".ris-resize-handle")) return;
             e.preventDefault();
+            const rect = element.getBoundingClientRect();
+            element.style.left = `${rect.left}px`;
+            element.style.top = `${rect.top}px`;
+            element.style.right = "auto";
             // get the mouse cursor position at startup:
             pos3 = e.clientX;
             pos4 = e.clientY;
@@ -797,4 +1251,6 @@
             document.onmousemove = null;
         }
     }
+
+    autoSubmitCopyseekerSearch();
 })();
